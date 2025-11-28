@@ -634,6 +634,7 @@ const elements = {
   modeSelect: document.getElementById("mode-select"),
   difficultySelect: document.getElementById("difficulty-select"),
   freeplayOptions: document.getElementById("freeplay-options"),
+  modeDescription: document.getElementById("mode-description"),
 
   // Campaign display on home
   campaignStatus: document.getElementById("campaign-status"),
@@ -877,7 +878,46 @@ function initializeSelectors() {
       elements.difficultySelect.appendChild(option);
     }
     elements.difficultySelect.value = state.difficulty;
+
+    // Update description when difficulty changes
+    elements.difficultySelect.addEventListener("change", updateModeDescription);
   }
+
+  // Update description when mode changes
+  if (elements.modeSelect) {
+    elements.modeSelect.addEventListener("change", updateModeDescription);
+  }
+
+  // Show initial description
+  updateModeDescription();
+}
+
+/**
+ * Updates the mode description based on current selection
+ */
+function updateModeDescription() {
+  if (!elements.modeDescription) return;
+
+  const selectedMode = elements.modeSelect ? elements.modeSelect.value : "tapOnBlue";
+  const selectedDifficulty = elements.difficultySelect ? elements.difficultySelect.value : "normal";
+
+  const mode = MODES[selectedMode];
+  const difficulty = DIFFICULTY_CONFIG[selectedDifficulty];
+
+  if (!mode) return;
+
+  // Build description
+  let description = mode.description;
+
+  // Add difficulty info
+  if (difficulty) {
+    const trials = difficulty.maxTrials;
+    const speed = selectedDifficulty === "easy" ? "Relaxed pace" :
+                  selectedDifficulty === "normal" ? "Moderate pace" : "Fast pace";
+    description += ` • ${trials} trials, ${speed.toLowerCase()}.`;
+  }
+
+  elements.modeDescription.textContent = description;
 }
 
 /**
@@ -928,6 +968,9 @@ function updateModeSelector() {
   const firstUnlocked = campaign.unlockedModes[0] || "tapOnBlue";
   elements.modeSelect.value = firstUnlocked;
   state.currentMode = firstUnlocked;
+
+  // Update description after mode selector changes
+  updateModeDescription();
 }
 
 // ===== CAMPAIGN LOGIC =====
