@@ -570,6 +570,7 @@ const elements = {
   btnPlayAgain: document.getElementById("btn-play-again"),
   btnNextLevel: document.getElementById("btn-next-level"),
   btnHome: document.getElementById("btn-home"),
+  btnGameBack: document.getElementById("btn-game-back"),
 
   // Selectors (freeplay)
   modeSelect: document.getElementById("mode-select"),
@@ -1719,6 +1720,19 @@ if (elements.btnNextLevel) {
 // Home button
 if (elements.btnHome) {
   elements.btnHome.addEventListener("click", goHome);
+}
+
+// Game back button (exit mid-game)
+if (elements.btnGameBack) {
+  elements.btnGameBack.addEventListener("click", () => {
+    // Stop any running game
+    if (state.trialTimeoutId) {
+      clearTimeout(state.trialTimeoutId);
+      state.trialTimeoutId = null;
+    }
+    state.status = "idle";
+    goHome();
+  });
 }
 
 // Tap area

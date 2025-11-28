@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Impulse Lab</title>
-  <link rel="stylesheet" href="style.css?v=8">
+  <link rel="stylesheet" href="style.css?v=9">
   <!-- Supabase JS Client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- Chart.js for performance graphs -->
@@ -148,6 +148,9 @@
   <!-- GAME SCREEN -->
   <section id="screen-game" class="screen hidden">
     <div class="game-container">
+      <!-- Back button -->
+      <button id="btn-game-back" class="btn-game-back" title="Back to Home">✕</button>
+
       <!-- Campaign HUD (hidden in freeplay) -->
       <div class="game-hud">
         <span id="level-display" class="hud-item hidden">Level 1</span>
@@ -297,6 +300,6 @@
   </section>
 
   <script src="supabase.js?v=2"></script>
-  <script src="app.js?v=2"></script>
+  <script src="app.js?v=3"></script>
 </body>
 </html>
