@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Impulse Lab</title>
-  <link rel="stylesheet" href="style.css?v=12">
+  <link rel="stylesheet" href="style.css?v=13">
   <!-- Supabase JS Client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- Chart.js for performance graphs -->
@@ -204,9 +204,9 @@
           <div class="selector-group">
             <label for="focus-difficulty">Difficulty</label>
             <select id="focus-difficulty">
-              <option value="easy">Easy (~1.5 min)</option>
-              <option value="normal" selected>Normal (~2 min)</option>
-              <option value="hard">Hard (~2.5 min)</option>
+              <option value="easy">Easy (~30s)</option>
+              <option value="normal" selected>Normal (~45s)</option>
+              <option value="hard">Hard (~1 min)</option>
             </select>
           </div>
           <button id="btn-focus-lab" class="btn btn-focus">Start Focus Lab</button>
@@ -415,6 +415,6 @@
   </section>
 
   <script src="supabase.js?v=4"></script>
-  <script src="app.js?v=7"></script>
+  <script src="app.js?v=8"></script>
 </body>
 </html>

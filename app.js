@@ -261,28 +261,28 @@ const DIFFICULTY_CONFIG = {
 // Difficulty progression order
 const DIFFICULTY_ORDER = ["easy", "normal", "hard"];
 
-// Vigilance mode difficulty presets (longer sessions, rarer targets, variable tempo)
+// Focus Lab difficulty presets (shorter, more action, variable tempo, visual variety)
 const VIGILANCE_DIFFICULTY_CONFIG = {
   easy: {
     label: "Easy",
-    maxTrials: 40,           // ~1.5 minutes
-    trialDurationMin: 1500,  // Variable tempo range
-    trialDurationMax: 2500,
-    targetProbability: 0.15  // ~6 targets expected
+    maxTrials: 20,           // ~45 seconds
+    trialDurationMin: 800,   // Unpredictable tempo
+    trialDurationMax: 1800,
+    targetProbability: 0.35  // ~7 targets expected
   },
   normal: {
     label: "Normal",
-    maxTrials: 60,           // ~2 minutes
-    trialDurationMin: 1000,  // Wider tempo range
-    trialDurationMax: 3000,
-    targetProbability: 0.10  // ~6 targets expected
+    maxTrials: 25,           // ~50 seconds
+    trialDurationMin: 500,   // More unpredictable
+    trialDurationMax: 2000,
+    targetProbability: 0.30  // ~7-8 targets expected
   },
   hard: {
     label: "Hard",
-    maxTrials: 80,           // ~2.5 minutes
-    trialDurationMin: 600,   // Very wide tempo range (fast to slow)
-    trialDurationMax: 3500,
-    targetProbability: 0.08  // ~6-7 targets expected
+    maxTrials: 30,           // ~1 minute
+    trialDurationMin: 300,   // Very unpredictable (quick to slow)
+    trialDurationMax: 2200,
+    targetProbability: 0.25  // ~7-8 targets expected
   }
 };
 
@@ -454,24 +454,66 @@ const MODES = {
     }
   },
   // Focus Lab - standalone vigilance mode (not shown in dropdown)
+  // Now with visual variety - target changes each session!
   focusLab: {
     id: "focusLab",
     label: "Focus Lab",
-    description: "Test your sustained attention with variable tempo over time.",
-    hint: "Stay focused. Targets are rare but you must catch them all.",
-    useShapes: false,
+    description: "Test your sustained attention with variable tempo and changing targets.",
+    hint: "Tap the target! Watch for changes.",
+    useShapes: true,
     isVigilance: true,
     isHidden: true, // Don't show in mode selector - has its own UI
-    isTarget: (color, shape) => color === "blue",
-    getTrialProps: (targetProbability) => {
+    // Dynamic target - set at session start
+    currentTarget: { color: "blue", shape: "circle" },
+    isTarget: function(color, shape) {
+      return color === this.currentTarget.color && shape === this.currentTarget.shape;
+    },
+    // Pick a random target for this session
+    randomizeTarget: function() {
+      const targets = [
+        { color: "blue", shape: "circle" },
+        { color: "blue", shape: "square" },
+        { color: "green", shape: "circle" },
+        { color: "red", shape: "triangle" },
+        { color: "purple", shape: "diamond" },
+        { color: "yellow", shape: "square" }
+      ];
+      this.currentTarget = targets[Math.floor(Math.random() * targets.length)];
+      return this.currentTarget;
+    },
+    getTrialProps: function(targetProbability) {
+      const target = this.currentTarget;
+
       if (Math.random() < targetProbability) {
-        return { color: "blue", shape: "circle" };
+        return { color: target.color, shape: target.shape };
       }
-      const nonBlueColors = COLOR_KEYS.filter(c => c !== "blue");
-      return {
-        color: nonBlueColors[Math.floor(Math.random() * nonBlueColors.length)],
-        shape: "circle"
-      };
+
+      // Generate distractor - anything except the current target
+      const distractorType = Math.random();
+
+      if (distractorType < 0.4) {
+        // Same shape, different color
+        const otherColors = COLOR_KEYS.filter(c => c !== target.color);
+        return {
+          color: otherColors[Math.floor(Math.random() * otherColors.length)],
+          shape: target.shape
+        };
+      } else if (distractorType < 0.7) {
+        // Same color, different shape
+        const otherShapes = SHAPES.filter(s => s !== target.shape);
+        return {
+          color: target.color,
+          shape: otherShapes[Math.floor(Math.random() * otherShapes.length)]
+        };
+      } else {
+        // Completely different
+        const otherColors = COLOR_KEYS.filter(c => c !== target.color);
+        const otherShapes = SHAPES.filter(s => s !== target.shape);
+        return {
+          color: otherColors[Math.floor(Math.random() * otherColors.length)],
+          shape: otherShapes[Math.floor(Math.random() * otherShapes.length)]
+        };
+      }
     }
   }
 };
@@ -1855,9 +1897,17 @@ function startFocusLab() {
   resetState();
   state.status = "running";
 
-  // Update hint from mode config
+  // Randomize the target for this session (visual variety!)
   const mode = MODES[state.currentMode];
-  if (elements.hint && mode && mode.hint) {
+  if (mode && mode.randomizeTarget) {
+    const target = mode.randomizeTarget();
+    // Update hint to show current target
+    const colorName = target.color.charAt(0).toUpperCase() + target.color.slice(1);
+    const shapeName = target.shape.charAt(0).toUpperCase() + target.shape.slice(1);
+    if (elements.hint) {
+      elements.hint.textContent = `Tap the ${colorName} ${shapeName}!`;
+    }
+  } else if (elements.hint && mode && mode.hint) {
     elements.hint.textContent = mode.hint;
   }
 
