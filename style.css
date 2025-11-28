@@ -199,6 +199,9 @@ html, body {
   justify-content: center;
   padding: 20px;
   overflow-y: auto;
+  position: relative;
+  z-index: 1;
+  background: transparent;
 }
 
 /* Results screen needs different alignment to allow scrolling */
