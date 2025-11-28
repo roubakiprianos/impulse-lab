@@ -548,6 +548,117 @@ html, body {
   transform: rotate(45deg) scale(1.05);
 }
 
+/* Moving objects animation */
+.symbol.moving {
+  animation: symbolMove 1.5s ease-in-out infinite;
+}
+
+.symbol.moving.shape-diamond {
+  animation: symbolMoveDiamond 1.5s ease-in-out infinite;
+}
+
+@keyframes symbolMove {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(25px, -20px);
+  }
+  50% {
+    transform: translate(-20px, 15px);
+  }
+  75% {
+    transform: translate(15px, 25px);
+  }
+}
+
+@keyframes symbolMoveDiamond {
+  0%, 100% {
+    transform: rotate(45deg) translate(0, 0);
+  }
+  25% {
+    transform: rotate(45deg) translate(25px, -20px);
+  }
+  50% {
+    transform: rotate(45deg) translate(-20px, 15px);
+  }
+  75% {
+    transform: rotate(45deg) translate(15px, 25px);
+  }
+}
+
+/* Moving + target state */
+.symbol.moving.target:not(.shape-diamond) {
+  animation: symbolMoveTarget 1.5s ease-in-out infinite;
+}
+
+.symbol.moving.target.shape-diamond {
+  animation: symbolMoveTargetDiamond 1.5s ease-in-out infinite;
+}
+
+@keyframes symbolMoveTarget {
+  0%, 100% {
+    transform: translate(0, 0) scale(1.05);
+  }
+  25% {
+    transform: translate(25px, -20px) scale(1.05);
+  }
+  50% {
+    transform: translate(-20px, 15px) scale(1.05);
+  }
+  75% {
+    transform: translate(15px, 25px) scale(1.05);
+  }
+}
+
+@keyframes symbolMoveTargetDiamond {
+  0%, 100% {
+    transform: rotate(45deg) translate(0, 0) scale(1.05);
+  }
+  25% {
+    transform: rotate(45deg) translate(25px, -20px) scale(1.05);
+  }
+  50% {
+    transform: rotate(45deg) translate(-20px, 15px) scale(1.05);
+  }
+  75% {
+    transform: rotate(45deg) translate(15px, 25px) scale(1.05);
+  }
+}
+
+/* Multi-symbol moving */
+.symbol-multi.moving {
+  animation: symbolMultiMove 1.2s ease-in-out infinite;
+}
+
+.symbol-multi.moving.shape-diamond {
+  animation: symbolMultiMoveDiamond 1.2s ease-in-out infinite;
+}
+
+@keyframes symbolMultiMove {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+  33% {
+    transform: translate(15px, -12px);
+  }
+  66% {
+    transform: translate(-12px, 10px);
+  }
+}
+
+@keyframes symbolMultiMoveDiamond {
+  0%, 100% {
+    transform: rotate(45deg) translate(0, 0);
+  }
+  33% {
+    transform: rotate(45deg) translate(15px, -12px);
+  }
+  66% {
+    transform: rotate(45deg) translate(-12px, 10px);
+  }
+}
+
 /* ===== MULTI-SYMBOL MODE ===== */
 .symbols-container {
   position: relative;

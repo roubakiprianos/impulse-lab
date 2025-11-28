@@ -293,50 +293,61 @@ const CAMPAIGN_CONFIG = {
   // Unlocks: what gets unlocked at each level
   unlocks: {
     1: { type: "mode", id: "tapOnBlue", label: "Tap on Blue mode" },
+    3: { type: "feature", id: "moving", label: "Moving Objects" },
     4: { type: "mode", id: "blueCircle", label: "Blue Circle mode" },
-    7: { type: "mode", id: "multiTarget", label: "Multi-Target mode" }
+    5: { type: "mode", id: "multiTarget", label: "Multi-Target mode" }
   }
 };
 
 /**
  * Calculates difficulty parameters for a given level
- * Difficulty increases gradually with each level
+ * Difficulty increases faster with steeper curve
+ *
+ * Level progression:
+ * - Levels 1-2: Tap on Blue (static)
+ * - Level 3: Tap on Blue with MOVING objects
+ * - Level 4: Blue Circle mode (moving)
+ * - Level 5+: Multi-Target mode (moving)
+ *   - Level 5-6: 2 objects
+ *   - Level 7-8: 3 objects
+ *   - Level 9-10: 4 objects
+ *   - Level 11-12: 5 objects
+ *   - etc. (+1 object every 2 levels)
  */
 function getLevelConfig(level) {
   // Determine mode based on level
   let mode, symbolCount = 1;
+  let isMoving = level >= 3; // Objects start moving at level 3
 
-  if (level >= 7) {
+  if (level >= 5) {
     mode = "multiTarget";
-    // Symbol count increases: 2 at level 7, 3 at level 12, 4 at level 18
-    if (level >= 18) {
-      symbolCount = 4;
-    } else if (level >= 12) {
-      symbolCount = 3;
-    } else {
-      symbolCount = 2;
-    }
+    // Symbol count: starts at 2, increases by 1 every 2 levels
+    // Level 5-6: 2, Level 7-8: 3, Level 9-10: 4, etc.
+    symbolCount = 2 + Math.floor((level - 5) / 2);
+    // Cap at reasonable maximum (6 objects)
+    symbolCount = Math.min(6, symbolCount);
   } else if (level >= 4) {
     mode = "blueCircle";
   } else {
     mode = "tapOnBlue";
   }
 
-  // Trial duration: starts at 1100ms, decreases by 30ms per level, min 450ms
-  const trialDuration = Math.max(450, 1100 - (level - 1) * 30);
+  // Trial duration: starts at 900ms (harder), decreases by 50ms per level (faster), min 350ms
+  const trialDuration = Math.max(350, 900 - (level - 1) * 50);
 
-  // Target probability: starts at 0.55, decreases by 0.015 per level, min 0.20
-  const targetProbability = Math.max(0.20, 0.55 - (level - 1) * 0.015);
+  // Target probability: starts at 0.45 (less targets = harder), decreases by 0.02 per level, min 0.15
+  const targetProbability = Math.max(0.15, 0.45 - (level - 1) * 0.02);
 
-  // Pass score: starts at 45, increases by 1.5 per level, max 75
-  const passScore = Math.min(75, Math.round(45 + (level - 1) * 1.5));
+  // Pass score: starts at 55 (higher bar), increases by 2 per level, max 85
+  const passScore = Math.min(85, Math.round(55 + (level - 1) * 2));
 
   return {
     mode,
     symbolCount,
     trialDuration,
     targetProbability,
-    passScore
+    passScore,
+    isMoving
   };
 }
 
@@ -523,6 +534,7 @@ const state = {
   targetProbability: 0.4,
   passScore: 50,            // Score needed to pass (campaign)
   symbolCount: 1,           // Number of symbols to show (for multi-target)
+  isMoving: false,          // Whether objects should move around
 
   // Trial tracking
   trialIndex: 0,
@@ -899,6 +911,7 @@ function startCampaign() {
   state.targetProbability = levelConfig.targetProbability;
   state.passScore = levelConfig.passScore;
   state.symbolCount = levelConfig.symbolCount;
+  state.isMoving = levelConfig.isMoving;
 
   // Check for new unlock at this level
   state.newUnlock = checkUnlocks(campaign.level);
@@ -963,6 +976,7 @@ function resetState() {
   state.hasTappedThisTrial = false;
   state.trialStartTime = 0;
   state.levelPassed = false;
+  state.isMoving = false;
   state.newUnlock = null;
 
   // Reset vigilance quarters
@@ -1253,6 +1267,11 @@ function renderSingleSymbol() {
   if (state.currentIsTarget) {
     elements.symbol.classList.add("target");
   }
+
+  // Add moving animation if enabled
+  if (state.isMoving) {
+    elements.symbol.classList.add("moving");
+  }
 }
 
 /**
@@ -1274,8 +1293,45 @@ const SYMBOL_POSITIONS = {
     [10, 70],   // Top right
     [60, 10],   // Bottom left
     [60, 70]    // Bottom right
+  ],
+  5: [
+    [5, 40],    // Top center
+    [35, 5],    // Middle left
+    [35, 75],   // Middle right
+    [70, 15],   // Bottom left
+    [70, 65]    // Bottom right
+  ],
+  6: [
+    [5, 15],    // Top left
+    [5, 65],    // Top right
+    [40, 5],    // Middle left
+    [40, 75],   // Middle right
+    [75, 15],   // Bottom left
+    [75, 65]    // Bottom right
   ]
 };
+
+/**
+ * Get positions array for a given symbol count
+ * Falls back to generating positions if count exceeds predefined
+ */
+function getPositionsForCount(count) {
+  if (SYMBOL_POSITIONS[count]) {
+    return SYMBOL_POSITIONS[count];
+  }
+  // Generate grid positions for larger counts
+  const positions = [];
+  const cols = Math.ceil(Math.sqrt(count));
+  const rows = Math.ceil(count / cols);
+  for (let i = 0; i < count; i++) {
+    const row = Math.floor(i / cols);
+    const col = i % cols;
+    const top = 10 + (row * 70 / Math.max(1, rows - 1));
+    const left = 10 + (col * 70 / Math.max(1, cols - 1));
+    positions.push([top, left]);
+  }
+  return positions;
+}
 
 /**
  * Shuffles an array using Fisher-Yates algorithm
@@ -1298,7 +1354,7 @@ function renderMultipleSymbols() {
   elements.symbolsContainer.innerHTML = "";
 
   // Get positions for this symbol count and randomize them
-  const positions = SYMBOL_POSITIONS[state.symbolCount] || SYMBOL_POSITIONS[2];
+  const positions = getPositionsForCount(state.symbolCount);
   const shuffledPositions = shuffleArray(positions);
 
   state.currentSymbols.forEach((sym, index) => {
@@ -1318,6 +1374,13 @@ function renderMultipleSymbols() {
     // Add glow to the target (blue circle) if present
     if (sym.color === "blue" && sym.shape === "circle") {
       symbolEl.classList.add("target");
+    }
+
+    // Add moving animation if enabled
+    if (state.isMoving) {
+      symbolEl.classList.add("moving");
+      // Stagger animation start for each symbol
+      symbolEl.style.animationDelay = `${index * 0.2}s`;
     }
 
     // Position the symbol using absolute positioning
