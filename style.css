@@ -700,53 +700,58 @@ html, body {
 
 /* ===== AUTH PROMPT ===== */
 .auth-prompt {
-  text-align: center;
-  padding: 16px;
-  margin-bottom: 20px;
-  background: linear-gradient(135deg, rgba(0, 212, 255, 0.15) 0%, rgba(0, 153, 204, 0.1) 100%);
-  border-radius: 16px;
-  border: 1px solid rgba(0, 212, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 10px 16px;
+  margin-bottom: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .auth-prompt-text {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  margin-bottom: 12px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.auth-buttons {
+  display: flex;
+  gap: 8px;
 }
 
 .btn-auth {
-  background: var(--btn-primary-bg);
-  color: var(--bg-dark);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
   border: none;
-  padding: 10px 24px;
-  border-radius: 25px;
-  font-size: 0.95rem;
-  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
   cursor: pointer;
-  margin: 0 6px;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: background 0.2s;
 }
 
 .btn-auth:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-glow-blue);
+  background: rgba(255, 255, 255, 0.18);
 }
 
 .btn-auth-secondary {
   background: transparent;
-  color: var(--accent-blue);
-  border: 1px solid var(--accent-blue);
-  padding: 10px 24px;
-  border-radius: 25px;
-  font-size: 0.95rem;
-  font-weight: 500;
+  color: var(--text-secondary);
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 400;
   cursor: pointer;
-  margin: 0 6px;
-  transition: background 0.2s, color 0.2s;
+  transition: color 0.2s;
 }
 
 .btn-auth-secondary:hover {
-  background: rgba(0, 212, 255, 0.15);
+  color: var(--text-primary);
 }
 
 /* ===== USER BAR ===== */
