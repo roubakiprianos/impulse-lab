@@ -93,44 +93,45 @@ html, body {
 .orb {
   position: absolute;
   border-radius: 50%;
-  filter: blur(60px);
-  opacity: 0.5;
+  filter: blur(80px);
+  opacity: 0.7;
   animation: float 10s ease-in-out infinite;
+  pointer-events: none;
 }
 
 .orb-1 {
-  width: 300px;
-  height: 300px;
-  background: linear-gradient(135deg, #ff0080, #7928ca);
-  top: 10%;
-  left: 10%;
+  width: 400px;
+  height: 400px;
+  background: #ff0080;
+  top: 5%;
+  left: 5%;
   animation-delay: 0s;
 }
 
 .orb-2 {
-  width: 250px;
-  height: 250px;
-  background: linear-gradient(135deg, #00d4ff, #0070f3);
-  top: 60%;
-  right: 10%;
+  width: 350px;
+  height: 350px;
+  background: #00d4ff;
+  top: 50%;
+  right: 5%;
   animation-delay: -3s;
 }
 
 .orb-3 {
-  width: 200px;
-  height: 200px;
-  background: linear-gradient(135deg, #00ff88, #00b4d8);
-  bottom: 20%;
-  left: 30%;
+  width: 300px;
+  height: 300px;
+  background: #00ff88;
+  bottom: 10%;
+  left: 20%;
   animation-delay: -6s;
 }
 
 .orb-4 {
-  width: 180px;
-  height: 180px;
-  background: linear-gradient(135deg, #f97316, #ec4899);
-  top: 30%;
-  right: 25%;
+  width: 280px;
+  height: 280px;
+  background: #f97316;
+  top: 25%;
+  right: 20%;
   animation-delay: -2s;
 }
 
