@@ -424,7 +424,7 @@ const MODES = {
     hint: "Find the blue circle among multiple shapes!",
     useShapes: true,
     isMulti: true, // Flag for multi-symbol mode
-    unlockLevel: 7, // Unlocked at level 7
+    unlockLevel: 5, // Unlocked at level 5
     isTarget: (color, shape) => color === "blue" && shape === "circle",
     // For multi-target, we generate an array of symbols
     getTrialProps: (targetProbability, symbolCount = 2) => {
