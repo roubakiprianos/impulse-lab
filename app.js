@@ -13,6 +13,113 @@
  * - campaign: Campaign progression state (persisted)
  */
 
+// ===== BACKGROUND MUSIC =====
+
+const MUSIC_TRACKS = [
+  // Ambient/chill tracks (royalty-free)
+  "https://cdn.pixabay.com/audio/2022/10/25/audio_570a6384f4.mp3", // Chill ambient
+  "https://cdn.pixabay.com/audio/2022/05/27/audio_1808fbf07a.mp3", // Lo-fi chill
+  "https://cdn.pixabay.com/audio/2023/07/30/audio_e4b7e93c99.mp3", // Relaxing ambient
+];
+
+let musicAudio = null;
+let musicPlaying = false;
+let currentTrackIndex = 0;
+
+/**
+ * Initialize background music system
+ */
+function initMusic() {
+  musicAudio = new Audio();
+  musicAudio.loop = true;
+  musicAudio.volume = 0.3;
+
+  // Load saved preference
+  const savedPref = localStorage.getItem("impulseLab_music");
+  if (savedPref === "on") {
+    playMusic();
+  }
+}
+
+/**
+ * Toggle background music on/off
+ */
+function toggleMusic() {
+  if (musicPlaying) {
+    pauseMusic();
+  } else {
+    playMusic();
+  }
+}
+
+/**
+ * Start playing background music
+ */
+function playMusic() {
+  if (!musicAudio) initMusic();
+
+  musicAudio.src = MUSIC_TRACKS[currentTrackIndex];
+  musicAudio.play().then(() => {
+    musicPlaying = true;
+    updateMusicUI();
+    localStorage.setItem("impulseLab_music", "on");
+  }).catch(e => {
+    console.log("Music autoplay blocked, user interaction required");
+  });
+}
+
+/**
+ * Pause background music
+ */
+function pauseMusic() {
+  if (musicAudio) {
+    musicAudio.pause();
+    musicPlaying = false;
+    updateMusicUI();
+    localStorage.setItem("impulseLab_music", "off");
+  }
+}
+
+/**
+ * Update music toggle button UI
+ */
+function updateMusicUI() {
+  const toggle = document.getElementById("music-toggle");
+  const icon = document.getElementById("music-icon");
+
+  if (toggle && icon) {
+    if (musicPlaying) {
+      toggle.classList.add("playing");
+      icon.textContent = "🎵";
+    } else {
+      toggle.classList.remove("playing");
+      icon.textContent = "🔇";
+    }
+  }
+}
+
+// Music toggle event listener
+document.addEventListener("DOMContentLoaded", () => {
+  const musicToggle = document.getElementById("music-toggle");
+  if (musicToggle) {
+    musicToggle.addEventListener("click", toggleMusic);
+  }
+
+  // Try to restore music state
+  const savedPref = localStorage.getItem("impulseLab_music");
+  if (savedPref === "on") {
+    // Will attempt to play on first user interaction due to autoplay policies
+    document.addEventListener("click", function playOnFirstClick() {
+      if (!musicPlaying && localStorage.getItem("impulseLab_music") === "on") {
+        playMusic();
+      }
+      document.removeEventListener("click", playOnFirstClick);
+    }, { once: true });
+  }
+
+  updateMusicUI();
+});
+
 // ===== CONFIGURATION =====
 
 // Available colors for the symbol
