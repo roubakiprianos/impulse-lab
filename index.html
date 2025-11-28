@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Impulse Lab</title>
-  <link rel="stylesheet" href="style.css?v=9">
+  <link rel="stylesheet" href="style.css?v=10">
   <!-- Supabase JS Client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- Chart.js for performance graphs -->
@@ -39,6 +39,83 @@
       <button id="auth-close" class="modal-close">&times;</button>
       <h2 id="auth-title" class="modal-title">Sign In</h2>
       <form id="auth-form">
+        <div id="signup-fields" class="signup-fields hidden">
+          <div class="form-group">
+            <label for="auth-username">Username</label>
+            <input type="text" id="auth-username" placeholder="Your display name" minlength="3" maxlength="20">
+          </div>
+          <div class="form-group">
+            <label for="auth-country">Country</label>
+            <select id="auth-country">
+              <option value="">Select your country</option>
+              <option value="AF">Afghanistan</option>
+              <option value="AL">Albania</option>
+              <option value="DZ">Algeria</option>
+              <option value="AR">Argentina</option>
+              <option value="AU">Australia</option>
+              <option value="AT">Austria</option>
+              <option value="BE">Belgium</option>
+              <option value="BR">Brazil</option>
+              <option value="BG">Bulgaria</option>
+              <option value="CA">Canada</option>
+              <option value="CL">Chile</option>
+              <option value="CN">China</option>
+              <option value="CO">Colombia</option>
+              <option value="HR">Croatia</option>
+              <option value="CY">Cyprus</option>
+              <option value="CZ">Czech Republic</option>
+              <option value="DK">Denmark</option>
+              <option value="EG">Egypt</option>
+              <option value="EE">Estonia</option>
+              <option value="FI">Finland</option>
+              <option value="FR">France</option>
+              <option value="DE">Germany</option>
+              <option value="GR">Greece</option>
+              <option value="HK">Hong Kong</option>
+              <option value="HU">Hungary</option>
+              <option value="IS">Iceland</option>
+              <option value="IN">India</option>
+              <option value="ID">Indonesia</option>
+              <option value="IE">Ireland</option>
+              <option value="IL">Israel</option>
+              <option value="IT">Italy</option>
+              <option value="JP">Japan</option>
+              <option value="KR">South Korea</option>
+              <option value="LV">Latvia</option>
+              <option value="LT">Lithuania</option>
+              <option value="LU">Luxembourg</option>
+              <option value="MY">Malaysia</option>
+              <option value="MX">Mexico</option>
+              <option value="NL">Netherlands</option>
+              <option value="NZ">New Zealand</option>
+              <option value="NO">Norway</option>
+              <option value="PK">Pakistan</option>
+              <option value="PE">Peru</option>
+              <option value="PH">Philippines</option>
+              <option value="PL">Poland</option>
+              <option value="PT">Portugal</option>
+              <option value="RO">Romania</option>
+              <option value="RU">Russia</option>
+              <option value="SA">Saudi Arabia</option>
+              <option value="SG">Singapore</option>
+              <option value="SK">Slovakia</option>
+              <option value="SI">Slovenia</option>
+              <option value="ZA">South Africa</option>
+              <option value="ES">Spain</option>
+              <option value="SE">Sweden</option>
+              <option value="CH">Switzerland</option>
+              <option value="TW">Taiwan</option>
+              <option value="TH">Thailand</option>
+              <option value="TR">Turkey</option>
+              <option value="UA">Ukraine</option>
+              <option value="AE">United Arab Emirates</option>
+              <option value="GB">United Kingdom</option>
+              <option value="US">United States</option>
+              <option value="VN">Vietnam</option>
+              <option value="OTHER">Other</option>
+            </select>
+          </div>
+        </div>
         <div class="form-group">
           <label for="auth-email">Email</label>
           <input type="email" id="auth-email" required placeholder="your@email.com">
@@ -76,6 +153,7 @@
       <div id="user-bar" class="user-bar hidden">
         <span id="user-email" class="user-email"></span>
         <button id="btn-history" class="btn-icon" title="View History">📊</button>
+        <button id="btn-leaderboard" class="btn-icon" title="Leaderboard">🏆</button>
         <button id="btn-logout" class="btn-icon" title="Sign Out">🚪</button>
       </div>
 
@@ -299,7 +377,31 @@
     </div>
   </section>
 
-  <script src="supabase.js?v=2"></script>
-  <script src="app.js?v=3"></script>
+  <!-- LEADERBOARD SCREEN -->
+  <section id="screen-leaderboard" class="screen hidden">
+    <div class="card leaderboard-card">
+      <div class="leaderboard-header">
+        <h1 class="title">Leaderboard</h1>
+        <button id="btn-leaderboard-close" class="btn-icon">✕</button>
+      </div>
+
+      <!-- Mode Filter -->
+      <div class="leaderboard-filters">
+        <button class="leaderboard-filter-btn active" data-mode="all">All</button>
+        <button class="leaderboard-filter-btn" data-mode="focusLab">Focus Lab</button>
+        <button class="leaderboard-filter-btn" data-mode="campaign">Campaign</button>
+      </div>
+
+      <!-- Leaderboard List -->
+      <div id="leaderboard-list" class="leaderboard-list">
+        <div class="leaderboard-loading">Loading...</div>
+      </div>
+
+      <button id="btn-leaderboard-back" class="btn btn-ghost">Back to Home</button>
+    </div>
+  </section>
+
+  <script src="supabase.js?v=4"></script>
+  <script src="app.js?v=4"></script>
 </body>
 </html>

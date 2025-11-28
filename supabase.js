@@ -65,9 +65,11 @@ async function getCurrentUser() {
  * Sign up a new user with email and password
  * @param {string} email
  * @param {string} password
+ * @param {string} username - Display name for leaderboard
+ * @param {string} country - Country code (e.g., 'US', 'GB')
  * @returns {Object} { user, error }
  */
-async function signUp(email, password) {
+async function signUp(email, password, username = '', country = '') {
   if (!supabase) return { user: null, error: 'Supabase not configured' };
 
   try {
@@ -77,9 +79,69 @@ async function signUp(email, password) {
     });
 
     if (error) throw error;
+
+    // If signup successful and we have username/country, create profile
+    if (data.user && username && country) {
+      await createUserProfile(data.user.id, username, country);
+    }
+
     return { user: data.user, error: null };
   } catch (e) {
     return { user: null, error: e.message };
+  }
+}
+
+/**
+ * Create or update user profile
+ * @param {string} userId
+ * @param {string} username
+ * @param {string} country
+ */
+async function createUserProfile(userId, username, country) {
+  if (!supabase) return { data: null, error: 'Supabase not configured' };
+
+  try {
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .upsert({
+        user_id: userId,
+        username: username,
+        country: country
+      }, {
+        onConflict: 'user_id'
+      })
+      .select();
+
+    if (error) throw error;
+    return { data, error: null };
+  } catch (e) {
+    console.error('Error creating profile:', e);
+    return { data: null, error: e.message };
+  }
+}
+
+/**
+ * Get the current user's profile
+ * @returns {Object} { data, error }
+ */
+async function getUserProfile() {
+  if (!supabase) return { data: null, error: 'Supabase not configured' };
+
+  const user = await getCurrentUser();
+  if (!user) return { data: null, error: 'Not logged in' };
+
+  try {
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('user_id', user.id)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
+    return { data, error: null };
+  } catch (e) {
+    console.error('Error fetching profile:', e);
+    return { data: null, error: e.message };
   }
 }
 
@@ -283,11 +345,202 @@ async function getFocusLabStats(range = 'all') {
   return getGameStats(range, 'focusLab');
 }
 
+// ===== LEADERBOARD =====
+
+/**
+ * Country code to flag emoji mapping
+ */
+const COUNTRY_FLAGS = {
+  'AF': '🇦🇫', 'AL': '🇦🇱', 'DZ': '🇩🇿', 'AR': '🇦🇷', 'AU': '🇦🇺',
+  'AT': '🇦🇹', 'BE': '🇧🇪', 'BR': '🇧🇷', 'BG': '🇧🇬', 'CA': '🇨🇦',
+  'CL': '🇨🇱', 'CN': '🇨🇳', 'CO': '🇨🇴', 'HR': '🇭🇷', 'CY': '🇨🇾',
+  'CZ': '🇨🇿', 'DK': '🇩🇰', 'EG': '🇪🇬', 'EE': '🇪🇪', 'FI': '🇫🇮',
+  'FR': '🇫🇷', 'DE': '🇩🇪', 'GR': '🇬🇷', 'HK': '🇭🇰', 'HU': '🇭🇺',
+  'IS': '🇮🇸', 'IN': '🇮🇳', 'ID': '🇮🇩', 'IE': '🇮🇪', 'IL': '🇮🇱',
+  'IT': '🇮🇹', 'JP': '🇯🇵', 'KR': '🇰🇷', 'LV': '🇱🇻', 'LT': '🇱🇹',
+  'LU': '🇱🇺', 'MY': '🇲🇾', 'MX': '🇲🇽', 'NL': '🇳🇱', 'NZ': '🇳🇿',
+  'NO': '🇳🇴', 'PK': '🇵🇰', 'PE': '🇵🇪', 'PH': '🇵🇭', 'PL': '🇵🇱',
+  'PT': '🇵🇹', 'RO': '🇷🇴', 'RU': '🇷🇺', 'SA': '🇸🇦', 'SG': '🇸🇬',
+  'SK': '🇸🇰', 'SI': '🇸🇮', 'ZA': '🇿🇦', 'ES': '🇪🇸', 'SE': '🇸🇪',
+  'CH': '🇨🇭', 'TW': '🇹🇼', 'TH': '🇹🇭', 'TR': '🇹🇷', 'UA': '🇺🇦',
+  'AE': '🇦🇪', 'GB': '🇬🇧', 'US': '🇺🇸', 'VN': '🇻🇳', 'OTHER': '🌍'
+};
+
+/**
+ * Get country flag emoji from country code
+ */
+function getCountryFlag(countryCode) {
+  return COUNTRY_FLAGS[countryCode] || '🌍';
+}
+
+/**
+ * Get global leaderboard (top scores across all users)
+ * @param {string} gameMode - Optional filter: 'campaign', 'focusLab', 'freeplay', or null for all
+ * @param {number} limit - Number of entries to return (default 50)
+ * @returns {Object} { data, error }
+ */
+async function getLeaderboard(gameMode = null, limit = 50) {
+  if (!supabase) return { data: [], error: 'Supabase not configured' };
+
+  try {
+    // We need to join game_results with user_profiles
+    // Get the best score per user (highest score they've ever achieved)
+    let query = supabase
+      .from('game_results')
+      .select(`
+        score,
+        game_mode,
+        difficulty,
+        level,
+        created_at,
+        user_id,
+        user_profiles!inner (
+          username,
+          country
+        )
+      `)
+      .order('score', { ascending: false })
+      .limit(limit * 3); // Fetch more to deduplicate
+
+    if (gameMode) {
+      query = query.eq('game_mode', gameMode);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+
+    // Deduplicate - keep only best score per user
+    const bestScores = {};
+    (data || []).forEach(entry => {
+      const userId = entry.user_id;
+      if (!bestScores[userId] || entry.score > bestScores[userId].score) {
+        bestScores[userId] = entry;
+      }
+    });
+
+    // Convert to array and sort by score
+    const leaderboard = Object.values(bestScores)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limit)
+      .map((entry, index) => ({
+        rank: index + 1,
+        username: entry.user_profiles?.username || 'Anonymous',
+        country: entry.user_profiles?.country || 'OTHER',
+        countryFlag: getCountryFlag(entry.user_profiles?.country),
+        score: entry.score,
+        gameMode: entry.game_mode,
+        difficulty: entry.difficulty,
+        level: entry.level,
+        date: entry.created_at
+      }));
+
+    return { data: leaderboard, error: null };
+  } catch (e) {
+    console.error('Error fetching leaderboard:', e);
+    return { data: [], error: e.message };
+  }
+}
+
+/**
+ * Get leaderboard for Focus Lab only (most common use case)
+ */
+async function getFocusLabLeaderboard(limit = 50) {
+  return getLeaderboard('focusLab', limit);
+}
+
+/**
+ * Get leaderboard for Campaign (by highest level reached)
+ * @param {number} limit - Number of entries to return
+ * @returns {Object} { data, error }
+ */
+async function getCampaignLeaderboard(limit = 50) {
+  if (!supabase) return { data: [], error: 'Supabase not configured' };
+
+  try {
+    // Get highest level per user in campaign mode
+    let query = supabase
+      .from('game_results')
+      .select(`
+        score,
+        level,
+        created_at,
+        user_id,
+        user_profiles!inner (
+          username,
+          country
+        )
+      `)
+      .eq('game_mode', 'campaign')
+      .not('level', 'is', null)
+      .order('level', { ascending: false })
+      .order('score', { ascending: false })
+      .limit(limit * 3);
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+
+    // Deduplicate - keep highest level per user
+    const bestLevels = {};
+    (data || []).forEach(entry => {
+      const userId = entry.user_id;
+      if (!bestLevels[userId] || entry.level > bestLevels[userId].level) {
+        bestLevels[userId] = entry;
+      }
+    });
+
+    // Convert to array and sort by level (then score for ties)
+    const leaderboard = Object.values(bestLevels)
+      .sort((a, b) => b.level - a.level || b.score - a.score)
+      .slice(0, limit)
+      .map((entry, index) => ({
+        rank: index + 1,
+        username: entry.user_profiles?.username || 'Anonymous',
+        country: entry.user_profiles?.country || 'OTHER',
+        countryFlag: getCountryFlag(entry.user_profiles?.country),
+        level: entry.level,
+        score: entry.score,
+        date: entry.created_at
+      }));
+
+    return { data: leaderboard, error: null };
+  } catch (e) {
+    console.error('Error fetching campaign leaderboard:', e);
+    return { data: [], error: e.message };
+  }
+}
+
 /*
  * ===== DATABASE SETUP =====
  *
- * Run this SQL in your Supabase SQL Editor to create the required table:
+ * Run this SQL in your Supabase SQL Editor to create the required tables:
  *
+ * -- 1. User Profiles table (for leaderboard)
+ * CREATE TABLE user_profiles (
+ *   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+ *   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE,
+ *   username TEXT NOT NULL,
+ *   country TEXT NOT NULL,
+ *   created_at TIMESTAMPTZ DEFAULT NOW()
+ * );
+ *
+ * -- Enable RLS for user_profiles
+ * ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
+ *
+ * -- Users can view all profiles (for leaderboard)
+ * CREATE POLICY "Anyone can view profiles" ON user_profiles
+ *   FOR SELECT USING (true);
+ *
+ * -- Users can insert their own profile
+ * CREATE POLICY "Users can insert own profile" ON user_profiles
+ *   FOR INSERT WITH CHECK (auth.uid() = user_id);
+ *
+ * -- Users can update their own profile
+ * CREATE POLICY "Users can update own profile" ON user_profiles
+ *   FOR UPDATE USING (auth.uid() = user_id);
+ *
+ * -- 2. Game Results table
  * CREATE TABLE game_results (
  *   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
  *   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -309,11 +562,11 @@ async function getFocusLabStats(range = 'all') {
  * -- Enable Row Level Security
  * ALTER TABLE game_results ENABLE ROW LEVEL SECURITY;
  *
- * -- Create policy: users can only see their own data
- * CREATE POLICY "Users can view own results" ON game_results
- *   FOR SELECT USING (auth.uid() = user_id);
+ * -- Users can view all results (for leaderboard)
+ * CREATE POLICY "Anyone can view results" ON game_results
+ *   FOR SELECT USING (true);
  *
- * -- Create policy: users can insert their own data
+ * -- Users can insert their own data
  * CREATE POLICY "Users can insert own results" ON game_results
  *   FOR INSERT WITH CHECK (auth.uid() = user_id);
  *

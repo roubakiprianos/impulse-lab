@@ -641,6 +641,9 @@ const elements = {
   authClose: document.getElementById("auth-close"),
   authSwitchText: document.getElementById("auth-switch-text"),
   authSwitchBtn: document.getElementById("auth-switch-btn"),
+  signupFields: document.getElementById("signup-fields"),
+  authUsername: document.getElementById("auth-username"),
+  authCountry: document.getElementById("auth-country"),
 
   // User bar elements
   userBar: document.getElementById("user-bar"),
@@ -657,7 +660,15 @@ const elements = {
   historyAvgScore: document.getElementById("history-avg-score"),
   historyBestTime: document.getElementById("history-best-time"),
   historyListItems: document.getElementById("history-list-items"),
-  filterBtns: document.querySelectorAll(".filter-btn")
+  filterBtns: document.querySelectorAll(".filter-btn"),
+
+  // Leaderboard screen elements
+  screenLeaderboard: document.getElementById("screen-leaderboard"),
+  btnLeaderboard: document.getElementById("btn-leaderboard"),
+  btnLeaderboardClose: document.getElementById("btn-leaderboard-close"),
+  btnLeaderboardBack: document.getElementById("btn-leaderboard-back"),
+  leaderboardList: document.getElementById("leaderboard-list"),
+  leaderboardFilterBtns: document.querySelectorAll(".leaderboard-filter-btn")
 };
 
 // ===== LOCAL STORAGE =====
@@ -710,13 +721,14 @@ function resetCampaign() {
 
 /**
  * Switches between screens by adding/removing the .hidden class
- * @param {string} name - "home", "game", "results", or "history"
+ * @param {string} name - "home", "game", "results", "history", or "leaderboard"
  */
 function showScreen(name) {
   elements.screenHome.classList.add("hidden");
   elements.screenGame.classList.add("hidden");
   elements.screenResults.classList.add("hidden");
   if (elements.screenHistory) elements.screenHistory.classList.add("hidden");
+  if (elements.screenLeaderboard) elements.screenLeaderboard.classList.add("hidden");
 
   switch (name) {
     case "home":
@@ -733,6 +745,12 @@ function showScreen(name) {
       if (elements.screenHistory) {
         elements.screenHistory.classList.remove("hidden");
         loadHistory();
+      }
+      break;
+    case "leaderboard":
+      if (elements.screenLeaderboard) {
+        elements.screenLeaderboard.classList.remove("hidden");
+        loadLeaderboard();
       }
       break;
   }
@@ -1859,10 +1877,21 @@ function showAuthModal(mode = "signin") {
     elements.authSwitchBtn.textContent = mode === "signin" ? "Sign Up" : "Sign In";
   }
 
+  // Show/hide signup-specific fields (username, country)
+  if (elements.signupFields) {
+    if (mode === "signup") {
+      elements.signupFields.classList.remove("hidden");
+    } else {
+      elements.signupFields.classList.add("hidden");
+    }
+  }
+
   // Clear error and inputs
   if (elements.authError) elements.authError.classList.add("hidden");
   if (elements.authEmail) elements.authEmail.value = "";
   if (elements.authPassword) elements.authPassword.value = "";
+  if (elements.authUsername) elements.authUsername.value = "";
+  if (elements.authCountry) elements.authCountry.value = "";
 }
 
 /**
@@ -1885,6 +1914,30 @@ async function handleAuthSubmit(e) {
 
   if (!email || !password) return;
 
+  // For signup, get username and country
+  let username = "";
+  let country = "";
+  if (authMode === "signup") {
+    username = elements.authUsername ? elements.authUsername.value.trim() : "";
+    country = elements.authCountry ? elements.authCountry.value : "";
+
+    // Validate username for signup
+    if (!username || username.length < 3) {
+      if (elements.authError) {
+        elements.authError.textContent = "Username must be at least 3 characters";
+        elements.authError.classList.remove("hidden");
+      }
+      return;
+    }
+    if (!country) {
+      if (elements.authError) {
+        elements.authError.textContent = "Please select your country";
+        elements.authError.classList.remove("hidden");
+      }
+      return;
+    }
+  }
+
   // Disable button during request
   if (elements.authSubmit) elements.authSubmit.disabled = true;
 
@@ -1892,7 +1945,7 @@ async function handleAuthSubmit(e) {
   if (authMode === "signin") {
     result = await signIn(email, password);
   } else {
-    result = await signUp(email, password);
+    result = await signUp(email, password, username, country);
   }
 
   if (elements.authSubmit) elements.authSubmit.disabled = false;
@@ -1910,7 +1963,7 @@ async function handleAuthSubmit(e) {
 
     // If signup, show message about email confirmation
     if (authMode === "signup") {
-      alert("Account created! Check your email to confirm your account.");
+      alert("Account created! You can now sign in.");
     }
   }
 }
@@ -2201,6 +2254,123 @@ async function saveGameResultsIfLoggedIn() {
   }
 
   await saveGameResult(result);
+}
+
+// ===== LEADERBOARD =====
+
+let currentLeaderboardMode = "all";
+
+/**
+ * Loads and displays the leaderboard
+ */
+async function loadLeaderboard(mode = currentLeaderboardMode) {
+  currentLeaderboardMode = mode;
+
+  // Update filter button states
+  if (elements.leaderboardFilterBtns) {
+    elements.leaderboardFilterBtns.forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.mode === mode);
+    });
+  }
+
+  // Show loading
+  if (elements.leaderboardList) {
+    elements.leaderboardList.innerHTML = '<div class="leaderboard-loading">Loading...</div>';
+  }
+
+  // Fetch data based on mode
+  let result;
+  if (mode === "campaign") {
+    result = await getCampaignLeaderboard(50);
+  } else if (mode === "focusLab") {
+    result = await getFocusLabLeaderboard(50);
+  } else {
+    result = await getLeaderboard(null, 50);
+  }
+
+  // Display results
+  updateLeaderboardDisplay(result.data, mode);
+}
+
+/**
+ * Updates the leaderboard display with data
+ */
+function updateLeaderboardDisplay(data, mode) {
+  if (!elements.leaderboardList) return;
+
+  if (!data || data.length === 0) {
+    elements.leaderboardList.innerHTML = `
+      <div class="leaderboard-empty">
+        <p>No scores yet!</p>
+        <p>Be the first to make the leaderboard.</p>
+      </div>
+    `;
+    return;
+  }
+
+  const isCampaignMode = mode === "campaign";
+
+  elements.leaderboardList.innerHTML = data.map((entry, index) => {
+    const isTop3 = entry.rank <= 3;
+
+    // Format mode/difficulty for display
+    let detailsText = "";
+    if (isCampaignMode) {
+      detailsText = `Level ${entry.level}`;
+    } else {
+      const modeLabel = entry.gameMode === "focusLab" ? "Focus Lab" :
+                        entry.gameMode === "campaign" ? "Campaign" : "Free Play";
+      detailsText = `${modeLabel} • ${entry.difficulty || ""}`;
+    }
+
+    return `
+      <div class="leaderboard-item ${isTop3 ? "top-3" : ""}">
+        <div class="leaderboard-rank">${entry.rank}</div>
+        <div class="leaderboard-info">
+          <div class="leaderboard-username">
+            <span class="leaderboard-country">${entry.countryFlag}</span>
+            ${escapeHtml(entry.username)}
+          </div>
+          <div class="leaderboard-details">${detailsText}</div>
+        </div>
+        ${isCampaignMode
+          ? `<div class="leaderboard-level">Lvl ${entry.level}</div>`
+          : `<div class="leaderboard-score">${entry.score}</div>`
+        }
+      </div>
+    `;
+  }).join("");
+}
+
+/**
+ * Escapes HTML to prevent XSS
+ */
+function escapeHtml(text) {
+  const div = document.createElement("div");
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// Leaderboard filter buttons
+if (elements.leaderboardFilterBtns) {
+  elements.leaderboardFilterBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+      loadLeaderboard(btn.dataset.mode);
+    });
+  });
+}
+
+// Leaderboard button in user bar
+if (elements.btnLeaderboard) {
+  elements.btnLeaderboard.addEventListener("click", () => showScreen("leaderboard"));
+}
+
+// Leaderboard close/back buttons
+if (elements.btnLeaderboardClose) {
+  elements.btnLeaderboardClose.addEventListener("click", () => showScreen("home"));
+}
+if (elements.btnLeaderboardBack) {
+  elements.btnLeaderboardBack.addEventListener("click", () => showScreen("home"));
 }
 
 // ===== INITIALIZATION =====
