@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Impulse Lab</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Chart.js for performance graphs -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+  <!-- AUTH MODAL -->
+  <div id="auth-modal" class="modal hidden">
+    <div class="modal-content">
+      <button id="auth-close" class="modal-close">&times;</button>
+      <h2 id="auth-title" class="modal-title">Sign In</h2>
+      <form id="auth-form">
+        <div class="form-group">
+          <label for="auth-email">Email</label>
+          <input type="email" id="auth-email" required placeholder="your@email.com">
+        </div>
+        <div class="form-group">
+          <label for="auth-password">Password</label>
+          <input type="password" id="auth-password" required placeholder="••••••••" minlength="6">
+        </div>
+        <p id="auth-error" class="auth-error hidden"></p>
+        <button type="submit" id="auth-submit" class="btn btn-primary">Sign In</button>
+      </form>
+      <p class="auth-switch">
+        <span id="auth-switch-text">Don't have an account?</span>
+        <button id="auth-switch-btn" class="btn-link">Sign Up</button>
+      </p>
+    </div>
+  </div>
+
+  <!-- HOME SCREEN -->
+  <section id="screen-home" class="screen">
+    <div class="card">
+      <h1 class="title">Impulse Lab</h1>
+      <p class="subtitle">Test your impulse control and reaction speed</p>
+
+      <!-- Sign In Prompt (shown when not logged in) -->
+      <div id="auth-prompt" class="auth-prompt">
+        <p class="auth-prompt-text">Sign in to save your progress and track performance</p>
+        <button id="btn-sign-in" class="btn btn-auth">Sign In</button>
+        <button id="btn-sign-up" class="btn btn-auth-secondary">Create Account</button>
+      </div>
+
+      <!-- User Status Bar (shown when logged in) -->
+      <div id="user-bar" class="user-bar hidden">
+        <span id="user-email" class="user-email"></span>
+        <button id="btn-history" class="btn-icon" title="View History">📊</button>
+        <button id="btn-logout" class="btn-icon" title="Sign Out">🚪</button>
+      </div>
+
+      <!-- Campaign Status Card -->
+      <div id="campaign-status" class="campaign-status">
+        <div class="campaign-header">
+          <span id="campaign-badge" class="campaign-badge">🌱 Novice</span>
+          <span id="campaign-lives" class="campaign-lives">❤️❤️❤️</span>
+        </div>
+        <div class="campaign-stats">
+          <div class="campaign-stat">
+            <span class="campaign-stat-label">Level</span>
+            <span id="campaign-level" class="campaign-stat-value">1</span>
+          </div>
+          <div class="campaign-stat">
+            <span class="campaign-stat-label">Best</span>
+            <span id="campaign-highest" class="campaign-stat-value">1</span>
+          </div>
+        </div>
+        <button id="btn-campaign" class="btn btn-primary btn-campaign">Play Campaign</button>
+      </div>
+
+      <!-- Divider -->
+      <div class="divider">
+        <span>or</span>
+      </div>
+
+      <!-- Focus Lab Section (Standalone) -->
+      <div id="focus-lab-section" class="focus-lab-section">
+        <div class="focus-lab-header">
+          <h3 class="focus-lab-title">🧠 Focus Lab</h3>
+          <p class="focus-lab-desc">Test sustained attention with variable tempo</p>
+        </div>
+        <div class="focus-lab-content">
+          <div class="selector-group">
+            <label for="focus-difficulty">Difficulty</label>
+            <select id="focus-difficulty">
+              <option value="easy">Easy (~1.5 min)</option>
+              <option value="normal" selected>Normal (~2 min)</option>
+              <option value="hard">Hard (~2.5 min)</option>
+            </select>
+          </div>
+          <button id="btn-focus-lab" class="btn btn-focus">Start Focus Lab</button>
+        </div>
+      </div>
+
+      <!-- Divider -->
+      <div class="divider">
+        <span>or</span>
+      </div>
+
+      <!-- Free Play Section -->
+      <div id="freeplay-options" class="freeplay-section">
+        <h3 class="freeplay-title">Free Play</h3>
+        <div class="selectors">
+          <div class="selector-group">
+            <label for="mode-select">Mode</label>
+            <select id="mode-select"></select>
+          </div>
+          <div class="selector-group">
+            <label for="difficulty-select">Difficulty</label>
+            <select id="difficulty-select"></select>
+          </div>
+        </div>
+        <button id="btn-start" class="btn btn-ghost">Start Free Play</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- GAME SCREEN -->
+  <section id="screen-game" class="screen hidden">
+    <div class="game-container">
+      <!-- Campaign HUD (hidden in freeplay) -->
+      <div class="game-hud">
+        <span id="level-display" class="hud-item hidden">Level 1</span>
+        <span id="lives-display" class="hud-item hidden">❤️❤️❤️</span>
+        <span id="streak-display" class="hud-item hidden">🔥 0</span>
+      </div>
+
+      <div class="game-info">
+        <span id="trial-counter">Trial 1 / 25</span>
+        <span id="time-left">~20s left</span>
+      </div>
+
+      <div id="tap-area" class="tap-area">
+        <div id="symbol" class="symbol"></div>
+        <div id="symbols-container" class="symbols-container hidden"></div>
+      </div>
+
+      <p class="hint">Tap when it's blue. Stay still otherwise.</p>
+    </div>
+  </section>
+
+  <!-- RESULTS SCREEN -->
+  <section id="screen-results" class="screen hidden">
+    <div class="card">
+      <h1 id="results-title" class="title">Results</h1>
+
+      <!-- Unlock Notification -->
+      <div id="unlock-notification" class="unlock-notification hidden"></div>
+
+      <!-- Campaign Results -->
+      <div id="campaign-results" class="campaign-results hidden"></div>
+
+      <!-- Vigilance Results (attention drift over time) -->
+      <div id="vigilance-results" class="vigilance-results hidden">
+        <h3 class="vigilance-title">Attention Over Time</h3>
+        <div class="vigilance-quarters">
+          <div class="vigilance-quarter">
+            <span class="quarter-label">Q1</span>
+            <div class="quarter-bar"><div id="q1-bar" class="quarter-fill"></div></div>
+            <span id="q1-rt" class="quarter-rt">—</span>
+          </div>
+          <div class="vigilance-quarter">
+            <span class="quarter-label">Q2</span>
+            <div class="quarter-bar"><div id="q2-bar" class="quarter-fill"></div></div>
+            <span id="q2-rt" class="quarter-rt">—</span>
+          </div>
+          <div class="vigilance-quarter">
+            <span class="quarter-label">Q3</span>
+            <div class="quarter-bar"><div id="q3-bar" class="quarter-fill"></div></div>
+            <span id="q3-rt" class="quarter-rt">—</span>
+          </div>
+          <div class="vigilance-quarter">
+            <span class="quarter-label">Q4</span>
+            <div class="quarter-bar"><div id="q4-bar" class="quarter-fill"></div></div>
+            <span id="q4-rt" class="quarter-rt">—</span>
+          </div>
+        </div>
+        <p id="vigilance-comment" class="vigilance-comment"></p>
+      </div>
+
+      <div class="results-grid">
+        <div class="result-item">
+          <span class="result-label">Hits</span>
+          <span id="results-hits" class="result-value">0</span>
+        </div>
+        <div class="result-item">
+          <span class="result-label">Misses</span>
+          <span id="results-misses" class="result-value">0</span>
+        </div>
+        <div class="result-item">
+          <span class="result-label">False Taps</span>
+          <span id="results-false" class="result-value">0</span>
+        </div>
+        <div class="result-item">
+          <span class="result-label">Avg RT</span>
+          <span id="results-rt" class="result-value">0 ms</span>
+        </div>
+      </div>
+
+      <div class="score-container">
+        <span class="score-label">Score</span>
+        <span id="results-score" class="score-value">0</span>
+        <span class="score-max">/ 100</span>
+      </div>
+
+      <p id="results-pass-score" class="pass-score hidden">Need 50 to pass</p>
+
+      <p id="results-comment" class="comment"></p>
+
+      <p id="difficulty-suggestion" class="difficulty-suggestion hidden"></p>
+
+      <div class="button-group">
+        <button id="btn-next-level" class="btn btn-primary hidden">Next Level</button>
+        <button id="btn-play-again" class="btn btn-primary">Play Again</button>
+        <button id="btn-home" class="btn btn-ghost">Back to Home</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- HISTORY SCREEN -->
+  <section id="screen-history" class="screen hidden">
+    <div class="card history-card">
+      <div class="history-header">
+        <h1 class="title">Performance History</h1>
+        <button id="btn-history-close" class="btn-icon">✕</button>
+      </div>
+
+      <!-- Time Filter -->
+      <div class="history-filters">
+        <button class="filter-btn active" data-range="today">Today</button>
+        <button class="filter-btn" data-range="week">This Week</button>
+        <button class="filter-btn" data-range="month">This Month</button>
+        <button class="filter-btn" data-range="all">All Time</button>
+      </div>
+
+      <!-- Chart Container -->
+      <div class="chart-container">
+        <canvas id="history-chart"></canvas>
+      </div>
+
+      <!-- Stats Summary -->
+      <div class="history-stats">
+        <div class="history-stat">
+          <span class="history-stat-value" id="history-sessions">0</span>
+          <span class="history-stat-label">Sessions</span>
+        </div>
+        <div class="history-stat">
+          <span class="history-stat-value" id="history-avg-score">—</span>
+          <span class="history-stat-label">Avg Score</span>
+        </div>
+        <div class="history-stat">
+          <span class="history-stat-value" id="history-best-time">—</span>
+          <span class="history-stat-label">Best Time</span>
+        </div>
+      </div>
+
+      <!-- Recent Sessions List -->
+      <div class="history-list">
+        <h3 class="history-list-title">Recent Sessions</h3>
+        <div id="history-list-items" class="history-list-items">
+          <p class="history-empty">No sessions yet. Play Focus Lab to start tracking!</p>
+        </div>
+      </div>
+
+      <button id="btn-history-back" class="btn btn-ghost">Back to Home</button>
+    </div>
+  </section>
+
+  <script src="supabase.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

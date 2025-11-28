@@ -1,0 +1,14 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Local env files (if you add any)
+.env
+.env.local
+
+# Empty directories
+impulse-lab/
