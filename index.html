@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Impulse Lab</title>
-  <link rel="stylesheet" href="style.css?v=11">
+  <link rel="stylesheet" href="style.css?v=12">
   <!-- Supabase JS Client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- Chart.js for performance graphs -->
@@ -134,8 +134,21 @@
     </div>
   </div>
 
+  <!-- WELCOME SCREEN -->
+  <section id="screen-welcome" class="screen">
+    <div class="welcome-container">
+      <div class="welcome-logo">
+        <span class="welcome-icon">⚡</span>
+      </div>
+      <h1 class="welcome-title">Impulse Lab</h1>
+      <p class="welcome-tagline">Test your reflexes. Train your focus.</p>
+      <button id="btn-enter" class="btn btn-primary btn-enter">Enter</button>
+      <p class="welcome-footer">developed by rouba — for fun</p>
+    </div>
+  </section>
+
   <!-- HOME SCREEN -->
-  <section id="screen-home" class="screen">
+  <section id="screen-home" class="screen hidden">
     <div class="card">
       <h1 class="title">Impulse Lab</h1>
       <p class="subtitle">Test your impulse control and reaction speed</p>
@@ -402,6 +415,6 @@
   </section>
 
   <script src="supabase.js?v=4"></script>
-  <script src="app.js?v=6"></script>
+  <script src="app.js?v=7"></script>
 </body>
 </html>

@@ -572,9 +572,13 @@ const state = {
 // ===== DOM ELEMENTS =====
 const elements = {
   // Screens
+  screenWelcome: document.getElementById("screen-welcome"),
   screenHome: document.getElementById("screen-home"),
   screenGame: document.getElementById("screen-game"),
   screenResults: document.getElementById("screen-results"),
+
+  // Welcome screen
+  btnEnter: document.getElementById("btn-enter"),
 
   // Buttons
   btnStart: document.getElementById("btn-start"),
@@ -733,9 +737,10 @@ function resetCampaign() {
 
 /**
  * Switches between screens by adding/removing the .hidden class
- * @param {string} name - "home", "game", "results", "history", or "leaderboard"
+ * @param {string} name - "welcome", "home", "game", "results", "history", or "leaderboard"
  */
 function showScreen(name) {
+  if (elements.screenWelcome) elements.screenWelcome.classList.add("hidden");
   elements.screenHome.classList.add("hidden");
   elements.screenGame.classList.add("hidden");
   elements.screenResults.classList.add("hidden");
@@ -743,6 +748,9 @@ function showScreen(name) {
   if (elements.screenLeaderboard) elements.screenLeaderboard.classList.add("hidden");
 
   switch (name) {
+    case "welcome":
+      if (elements.screenWelcome) elements.screenWelcome.classList.remove("hidden");
+      break;
     case "home":
       elements.screenHome.classList.remove("hidden");
       updateHomeScreen();
@@ -2450,4 +2458,13 @@ if (isSupabaseConfigured()) {
 
 loadCampaign();
 initializeSelectors();
-showScreen("home");
+
+// Welcome screen enter button
+if (elements.btnEnter) {
+  elements.btnEnter.addEventListener("click", () => {
+    showScreen("home");
+  });
+}
+
+// Start with welcome screen
+showScreen("welcome");
